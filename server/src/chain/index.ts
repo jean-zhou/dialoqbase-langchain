@@ -124,14 +124,13 @@ export const createChain = ({
   response_template,
 }: {
   llm: BaseLanguageModel<any> | BaseChatModel<any>;
-  question_llm?: BaseLanguageModel<any> | BaseChatModel<any>;
-  retriever?: Runnable;
-  question_template?: string;
+  question_llm: BaseLanguageModel<any> | BaseChatModel<any>;
+  retriever: Runnable;
+  question_template: string;
   response_template: string;
 }) => {
 
   question_template = updateTemplateVariables(question_template);
-  console.log('response_template ---', response_template);
   response_template = updateTemplateVariables(response_template);
 
   const retrieverChain = createRetrieverChain(
@@ -176,19 +175,18 @@ export const createChain = ({
   ]).withConfig({
     tags: ["GenerateResponse"],
   });
-  // return RunnableSequence.from([
-  //   {
-  //     question: RunnableLambda.from(
-  //       (input: RetrievalChainInput) => input.question
-  //     ).withConfig({
-  //       runName: "Itemgetter:question",
-  //     }),
-  //     chat_history: RunnableLambda.from(serializeHistory).withConfig({
-  //       runName: "SerializeHistory",
-  //     }),
-  //   },
-  //   context,
-  //   responseSynthesizerChain,
-  // ]);
-  return prompt.pipe(llm);
+  return RunnableSequence.from([
+    {
+      question: RunnableLambda.from(
+        (input: RetrievalChainInput) => input.question
+      ).withConfig({
+        runName: "Itemgetter:question",
+      }),
+      chat_history: RunnableLambda.from(serializeHistory).withConfig({
+        runName: "SerializeHistory",
+      }),
+    },
+    context,
+    responseSynthesizerChain,
+  ]);
 };
