@@ -164,6 +164,15 @@ export const createBotHandler = async (
       },
     });
 
+    // FIX: 插入 bot 表的时候，也要插入 BotPlayground 表，因为查的时候，会把 BotPlayground 表的信息作为 history 输出
+    // BotPlayground 表的 id 就是 bot 表的 public id
+    await prisma.botPlayground.create({
+      data: {
+        botId: bot.id,
+        id: bot.publicId,
+      }
+    });
+    // TODO: 可能插入了 botPlayground 表 还要插入 botPlaygroundMessage 表
     return {
       id: bot.id,
     };

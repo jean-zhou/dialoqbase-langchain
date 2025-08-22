@@ -41,10 +41,13 @@ export function groupMessagesByConversation(messages: any[]) {
   const groupedMessages = [];
   // [ { human: "", ai: "" } ]
   for (let i = 0; i < messages.length; i += 2) {
-    groupedMessages.push({
-      human: messages[i].content,
-      ai: messages[i + 1].content,
-    });
+    // groupedMessages.push({
+    //   human: messages[i].content,
+    //   ai: messages[i + 1].content,
+    // });
+    // FIX: Prompt 里的 MessagesPlaceholder 要求收到的是「BaseMessage 对象数组」，你却给了它一个「{human, ai} 对象数组」
+    groupedMessages.push(new HumanMessage(messages[i].content))
+    groupedMessages.push(new AIMessage(messages[i + 1].content))
   }
 
   return groupedMessages;
@@ -121,14 +124,14 @@ export const createChain = ({
   response_template,
 }: {
   llm: BaseLanguageModel<any> | BaseChatModel<any>;
-  question_llm: BaseLanguageModel<any> | BaseChatModel<any>;
-  retriever: Runnable;
-  question_template: string;
+  question_llm?: BaseLanguageModel<any> | BaseChatModel<any>;
+  retriever?: Runnable;
+  question_template?: string;
   response_template: string;
 }) => {
 
   question_template = updateTemplateVariables(question_template);
-  
+  console.log('response_template ---', response_template);
   response_template = updateTemplateVariables(response_template);
 
   const retrieverChain = createRetrieverChain(
@@ -173,18 +176,19 @@ export const createChain = ({
   ]).withConfig({
     tags: ["GenerateResponse"],
   });
-  return RunnableSequence.from([
-    {
-      question: RunnableLambda.from(
-        (input: RetrievalChainInput) => input.question
-      ).withConfig({
-        runName: "Itemgetter:question",
-      }),
-      chat_history: RunnableLambda.from(serializeHistory).withConfig({
-        runName: "SerializeHistory",
-      }),
-    },
-    context,
-    responseSynthesizerChain,
-  ]);
+  // return RunnableSequence.from([
+  //   {
+  //     question: RunnableLambda.from(
+  //       (input: RetrievalChainInput) => input.question
+  //     ).withConfig({
+  //       runName: "Itemgetter:question",
+  //     }),
+  //     chat_history: RunnableLambda.from(serializeHistory).withConfig({
+  //       runName: "SerializeHistory",
+  //     }),
+  //   },
+  //   context,
+  //   responseSynthesizerChain,
+  // ]);
+  return prompt.pipe(llm);
 };

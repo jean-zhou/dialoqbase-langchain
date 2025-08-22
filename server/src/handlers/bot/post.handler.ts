@@ -199,7 +199,7 @@ export const chatRequestHandler = async (
         callbacks: [
           {
             handleRetrieverEnd(documents) {
-              resolveWithDocuments(documents);
+              resolveWithDocuments(documents);  // TOFIX： 这个可能写错了，应该是没有文档的搜索，因为这里没有上传文档
             },
           },
         ],
@@ -240,7 +240,10 @@ export const chatRequestHandler = async (
         };
       }
     }
-
+    // temperature 参数控制模型的随机性参数，0 的话就不随机，1的话随机性最大
+    // temperature 为1时，模型的返回会变慢
+    // 目前由于框架的影响，如果模型返回超过 1s, 则直接报错，所以
+    // TODO: model name 不需要时间戳
     const model = chatModelProvider(bot.provider, bot.model, temperature, {
       ...botConfig,
     });
@@ -263,13 +266,15 @@ export const chatRequestHandler = async (
       ),
     });
 
-    const documents = await documentPromise;
+    // TODO：先不处理 document，要不然一直拿不到结果 pending
+    // const documents = await documentPromise;
+    const documents = [];
 
     const chatId = await prisma.botWebHistory.create({
       data: {
         chat_id: history_id,
         bot_id: bot.id,
-        bot: botResponse,
+        bot: typeof botResponse === 'object' ? botResponse.content : botResponse,
         human: message,
         metadata: {
           ip: request?.ip,
@@ -286,7 +291,7 @@ export const chatRequestHandler = async (
     return {
       bot: {
         chat_id: chatId.id,
-        text: botResponse,
+        text: typeof botResponse === 'object' ? botResponse.content : botResponse,
         sourceDocuments: documents,
       },
       history: [
@@ -302,6 +307,7 @@ export const chatRequestHandler = async (
       ],
     };
   } catch (e) {
+    console.log('chatRequestHandler error', e);
     return {
       bot: {
         text: "There was an error processing your request.",
@@ -553,6 +559,8 @@ export const chatRequestStreamHandler = async (
         }
       );
 
+      // Vectorstore 实现了一个 as_retriever 方法，该方法将生成一个 Retriever，特别是一个 VectorStoreRetriever。
+      // 这些检索器包括特定的 search_type 和 search_kwargs 属性，用于标识要调用的基础向量存储的方法以及如何参数化它们。
       retriever = vectorstore.asRetriever({
         callbacks: [
           {

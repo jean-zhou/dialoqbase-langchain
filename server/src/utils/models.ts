@@ -5,7 +5,8 @@ import { HuggingFaceInference } from "@langchain/community/llms/hf";
 import { DialoqbaseFireworksModel } from "../models/fireworks";
 import { OpenAI } from "@langchain/openai";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { ChatOllama } from "@langchain/community/chat_models/ollama";
+// import { ChatOllama } from "@langchain/community/chat_models/ollama";
+import { ChatOllama } from "@langchain/ollama";
 import { Replicate } from "@langchain/community/llms/replicate";
 
 export const chatModelProvider = (
@@ -87,7 +88,10 @@ export const chatModelProvider = (
       }) as any
     case "ollama":
       return new ChatOllama({
-        baseUrl: otherFields.baseURL,
+        // TODO：存的时候 url 存的 admin 需要修改
+        // baseUrl: otherFields.baseURL,
+        baseUrl: process.env.OLLAMA_BASE_URL,
+        temperature,
         model: modelName,
         ...otherFields,
       });
