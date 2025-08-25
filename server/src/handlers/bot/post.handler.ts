@@ -274,7 +274,7 @@ export const chatRequestHandler = async (
       data: {
         chat_id: history_id,
         bot_id: bot.id,
-        bot: typeof botResponse === 'object' ? botResponse.content : botResponse,
+        bot: botResponse,
         human: message,
         metadata: {
           ip: request?.ip,
@@ -291,7 +291,7 @@ export const chatRequestHandler = async (
     return {
       bot: {
         chat_id: chatId.id,
-        text: typeof botResponse === 'object' ? botResponse.content : botResponse,
+        text: botResponse,
         sourceDocuments: documents,
       },
       history: [
