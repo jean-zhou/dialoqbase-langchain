@@ -28,7 +28,7 @@ export const updateDialoqbaseSettingsHandler = async (
       message: "Settings not found",
     });
   }
-
+  // TODO: 在存入库的时候校验 chunkSize > chunkOverlap
   await primsa.dialoqbaseSettings.update({
     where: {
       id: 1,
@@ -170,7 +170,7 @@ export const updateDialoqbaseRAGSettingsHandler = async (
       message: "Forbidden",
     });
   }
-
+  // TODO: 在存入库的时候校验 chunkSize > chunkOverlap
   await prisma.dialoqbaseSettings.update({
     where: {
       id: 1,
