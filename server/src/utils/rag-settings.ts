@@ -10,8 +10,8 @@ export const getRagSettings = async (prisma: PrismaClient) => {
   });
 
   return {
-    chunkSize: data?.defaultChunkSize || 1000,
-    chunkOverlap: data?.defaultChunkOverlap || 200,
+    chunkSize: data?.defaultChunkSize ?? 1000,
+    chunkOverlap: data?.defaultChunkOverlap ?? 200,
     usePuppeteerFetch: data?.usePuppeteerFetch
   };
 };
