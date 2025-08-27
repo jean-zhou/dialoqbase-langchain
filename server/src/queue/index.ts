@@ -33,7 +33,7 @@ export default async function queueHandler(job: SandboxedJob) {
             id: source.id,
           },
           data: {
-            status: "PROCESSING",
+            status: "WORK-PROCESSING",
           },
         });
         const { chunkOverlap, chunkSize , usePuppeteerFetch} = await getRagSettings(prisma);
@@ -97,7 +97,7 @@ export default async function queueHandler(job: SandboxedJob) {
             id: source.id,
           },
           data: {
-            status: "FINISHED",
+            status: "WORK-FINISHED",
             isPending: false,
           },
         });
@@ -110,7 +110,8 @@ export default async function queueHandler(job: SandboxedJob) {
             id: sourceData.id,
           },
           data: {
-            status: "FAILED",
+            // TODO: work 以外其他地方也触发了 FAILED，所以用 WORK-FAILED区别一下 worker的处理
+            status: "WORK-FAILED",
             isPending: false,
           },
         });
