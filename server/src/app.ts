@@ -106,6 +106,8 @@ const worker = new Worker("vector", workerUrl, {
   useWorkerThreads: workerThreads === "true",
 });
 
+console.log("Worker is running ---------------");
+
 const job = new CronJob(
   process.env.DB_CRON_TIME || '0 0 0 * * *',
   processDatasourceCron,

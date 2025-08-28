@@ -4,7 +4,8 @@ import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/
 import { TransformersEmbeddings } from "../embeddings/transformer-embedding";
 import { GooglePaLMEmbeddings } from "@langchain/community/embeddings/googlepalm";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
-import { OllamaEmbeddings } from "@langchain/community/embeddings/ollama";
+// import { OllamaEmbeddings } from "@langchain/community/embeddings/ollama";
+import { OllamaEmbeddings } from "@langchain/ollama";
 
 export const embeddings = (
   provider: string,
@@ -30,11 +31,12 @@ export const embeddings = (
       });
     case "ollama":
       return new OllamaEmbeddings({
-        baseUrl: otherFields?.baseURL || process.env.OLLAMA_EMBEDDING_API_URL,
-        model:
-          modelName !== "dialoqbase-ollama"
-            ? modelName
-            : process.env.OLLAMA_EMBEDDING_API_MODEL,
+        baseUrl: otherFields?.baseURL || process.env.OLLAMA_BASE_URL,
+        // model:
+        //   modelName !== "dialoqbase-ollama"
+        //     ? modelName
+        //     : process.env.OLLAMA_EMBEDDING_API_MODEL,
+        model: process.env.QINHUI_OLLAMA_EMBEDDING_MODEL,
       });
     case "jina":
       return new TransformersEmbeddings({

@@ -190,13 +190,19 @@ export const getCreateBotConfigHandler = async (
   const embeddingModel = models
     .filter((model) => model.model_type === "embedding")
     .map((model) => {
+      // return {
+      //   label: `${model.name || model.model_id} ${model.model_id === "dialoqbase_eb_dialoqbase-ollama"
+      //     ? "(Deprecated)"
+      //     : ""
+      //     }`,
+      //   value: model.model_id,
+      //   disabled: model.model_id === "dialoqbase_eb_dialoqbase-ollama",
+      // };
+      // 使用 ollama embedding 模型
       return {
-        label: `${model.name || model.model_id} ${model.model_id === "dialoqbase_eb_dialoqbase-ollama"
-          ? "(Deprecated)"
-          : ""
-          }`,
+        label: `${model.name || model.model_id} `,
         value: model.model_id,
-        disabled: model.model_id === "dialoqbase_eb_dialoqbase-ollama",
+        disabled: false,
       };
     });
   if (settings?.dynamicallyFetchOllamaModels) {
