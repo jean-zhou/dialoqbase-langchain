@@ -224,7 +224,7 @@ export const addNewSourceByIdHandler = async (
       },
     });
   }
-
+  console.log('request.server.queue.add ---------------');
   await request.server.queue.add(
     "process",
     [
