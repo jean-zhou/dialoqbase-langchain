@@ -39,8 +39,12 @@ export const embeddings = (
         model: process.env.QINHUI_OLLAMA_EMBEDDING_MODEL,
       });
     case "jina":
-      return new TransformersEmbeddings({
-        model: "Xenova/jina-embeddings-v2-small-en",
+      // return new TransformersEmbeddings({
+      //   model: "Xenova/jina-embeddings-v2-small-en",
+      // });
+      return new OllamaEmbeddings({
+        baseUrl: otherFields?.baseURL || process.env.OLLAMA_BASE_URL,
+        model: process.env.JINA_OLLAMA_EMBEDDING_MODEL,
       });
     case "supabase":
       return new TransformersEmbeddings({
