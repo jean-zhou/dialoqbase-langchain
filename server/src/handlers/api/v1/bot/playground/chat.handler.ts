@@ -249,7 +249,7 @@ export const chatRequestStreamHandler = async (
           type: message.type,
           content: message.text,
         }))
-      ),
+      ) as any,
     });
 
     for await (const token of stream) {
@@ -261,7 +261,8 @@ export const chatRequestStreamHandler = async (
       response += token;
     }
 
-    const documents = await retriever.getRelevantDocuments(sanitizedQuestion);
+    // const documents = await retriever.getRelevantDocuments(sanitizedQuestion);
+    const documents = await retriever.invoke(sanitizedQuestion);
     const historyId = await saveChatHistory(
       prisma,
       bot.id,
@@ -288,6 +289,7 @@ export const chatRequestStreamHandler = async (
     await nextTick();
     return reply.raw.end();
   } catch (e) {
+    console.log('error: ', e);
     return handleErrorResponse(
       history,
       message,
