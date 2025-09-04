@@ -170,7 +170,7 @@ export const chatRequestHandler = async (
       embeddingInfo?.config
     );
     let retriever: BaseRetriever;
-    let resolveWithDocuments: (value: Document[]) => void;
+    // let resolveWithDocuments: (value: Document[]) => void;
     // const documentPromise = new Promise<Document[]>((resolve) => {
     //   resolveWithDocuments = resolve;
     // });
@@ -179,11 +179,11 @@ export const chatRequestHandler = async (
         botId: bot.id,
         sourceId: null,
         callbacks: [
-          {
-            handleRetrieverEnd(documents) {
-              resolveWithDocuments(documents);
-            },
-          },
+          // {
+          //   handleRetrieverEnd(documents) {
+          //     resolveWithDocuments(documents);
+          //   },
+          // },
         ],
       });
     } else {
@@ -195,15 +195,17 @@ export const chatRequestHandler = async (
         }
       );
 
-      retriever = vectorstore.asRetriever({
-        callbacks: [
-          {
-            handleRetrieverEnd(documents) {
-              resolveWithDocuments(documents);  // TOFIX： 这个可能写错了，应该是没有文档的搜索，因为这里没有上传文档
-            },
-          },
-        ],
-      });
+      console.log('vectorstore.asRetriever--------');
+      // retriever = vectorstore.asRetriever({
+      //   // callbacks: [
+      //   //   {
+      //   //     handleRetrieverEnd(documents) {
+      //   //       resolveWithDocuments(documents);  // TOFIX： 这个可能写错了，应该是没有文档的搜索，因为这里没有上传文档
+      //   //     },
+      //   //   },
+      //   // ],
+      // });
+      retriever = vectorstore.asRetriever();
     }
 
     const modelinfo = await getModelInfo({
