@@ -171,9 +171,9 @@ export const chatRequestHandler = async (
     );
     let retriever: BaseRetriever;
     let resolveWithDocuments: (value: Document[]) => void;
-    const documentPromise = new Promise<Document[]>((resolve) => {
-      resolveWithDocuments = resolve;
-    });
+    // const documentPromise = new Promise<Document[]>((resolve) => {
+    //   resolveWithDocuments = resolve;
+    // });
     if (bot.use_hybrid_search) {
       retriever = new DialoqbaseHybridRetrival(embeddingModel, {
         botId: bot.id,
@@ -256,7 +256,7 @@ export const chatRequestHandler = async (
       retriever,
     });
 
-    const botResponse = await chain.invoke({
+    const input = {
       question: sanitizedQuestion,
       chat_history: groupMessagesByConversation(
         history.map((message) => ({
@@ -264,11 +264,15 @@ export const chatRequestHandler = async (
           content: message.text,
         }))
       ),
-    });
+    } as any;
+    // console.log('input--------', input);
 
-    // TODO：先不处理 document，要不然一直拿不到结果 pending
+    const botResponse = await chain.invoke(input);
+    // console.log('botResponse--------', botResponse);
+
     // const documents = await documentPromise;
-    const documents = [];
+    const documents = await retriever.invoke(sanitizedQuestion);
+    // console.log('documents--------', documents);
 
     const chatId = await prisma.botWebHistory.create({
       data: {
