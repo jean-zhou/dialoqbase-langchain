@@ -4,6 +4,7 @@ import { Embeddings } from "langchain/embeddings/base";
 import { BaseRetriever, BaseRetrieverInput } from "@langchain/core/retrievers";
 import { CallbackManagerForRetrieverRun, Callbacks } from "langchain/callbacks";
 import { searchInternet } from "../internet";
+import { startSpan, endSpan } from "../observability/metrics-helpers";
 const prisma = new PrismaClient();
 export interface DialoqbaseLibArgs extends BaseRetrieverInput {
   botId: string;
@@ -66,6 +67,8 @@ export class DialoqbaseHybridRetrival extends BaseRetriever {
     k: number,
     _callbacks?: Callbacks
   ): Promise<SearchResult[]> {
+    const span = startSpan("retrieval.hybrid", { botId: this.botId });
+    const t0 = Date.now();
     try {
       const embeddedQuery = await this.embeddings.embedQuery(query);
 
@@ -115,7 +118,13 @@ export class DialoqbaseHybridRetrival extends BaseRetriever {
       return topResults;
     } catch (e) {
       console.log(e);
+      endSpan(span, e);
       return [];
+    }
+    finally {
+      endSpan(span);
+      const ms = Date.now() - t0;
+      // latency recorded globally by request handler
     }
   }
 
