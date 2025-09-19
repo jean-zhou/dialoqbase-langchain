@@ -82,6 +82,25 @@ const root: FastifyPluginAsync = async (fastify, _): Promise<void> => {
     },
     updateBotPlaygroundTitleById
   );
+
+  // Minimal multi-agent demo endpoint
+  fastify.post(
+    "/:id/agents/summarize",
+    {
+      onRequest: [fastify.authenticate],
+    },
+    async (request: any, reply: any) => {
+      const { runSummarizePipeline } = await import("../../../../../agents/pipelines/summarize");
+      const ctx = {
+        botId: request.params.id,
+        history: [{ role: "user", content: request.body?.message || "" }],
+        promptVersion: (request.query as any)?.prompt_version,
+      };
+      (global as any).__fastify_prisma = (request as any).server.prisma;
+      const transcript = await runSummarizePipeline(ctx);
+      return { transcript };
+    }
+  );
 };
 
 export default root;
