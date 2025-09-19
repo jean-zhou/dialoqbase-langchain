@@ -4,6 +4,7 @@ import { embeddings } from "../../../../../utils/embeddings";
 import { createChain, groupMessagesByConversation } from "../../../../../chain";
 import { getModelInfo } from "../../../../../utils/get-model-info";
 import { nextTick } from "../../../../../utils/nextTick";
+import { startSpan, endSpan, observePipelineLatency } from "../../../../../observability/metrics-helpers";
 import {
   createChatModel,
   createRetriever,
@@ -21,6 +22,8 @@ export const chatRequestHandler = async (
   let history = [];
 
   try {
+    const pipelineSpan = startSpan("pipeline.playground.chat", { bot_id });
+    const t0 = Date.now();
     const prisma = request.server.prisma;
     const bot = await prisma.bot.findFirst({
       where: { id: bot_id, user_id: request.user.user_id },
@@ -118,6 +121,9 @@ export const chatRequestHandler = async (
       documents
     );
 
+    const ms = Date.now() - t0;
+    observePipelineLatency(ms);
+    endSpan(pipelineSpan);
     return {
       bot: { text: botResponse, sourceDocuments: documents },
       history: [
@@ -146,6 +152,8 @@ export const chatRequestStreamHandler = async (
   let history = [];
 
   try {
+    const pipelineSpan = startSpan("pipeline.playground.chat.stream", { bot_id });
+    const t0 = Date.now();
     const prisma = request.server.prisma;
     const bot = await prisma.bot.findFirst({
       where: { id: bot_id, user_id: request.user.user_id },
@@ -272,6 +280,9 @@ export const chatRequestStreamHandler = async (
       documents
     );
 
+    const ms = Date.now() - t0;
+    observePipelineLatency(ms);
+    endSpan(pipelineSpan);
     reply.sse({
       event: "result",
       id: "",
