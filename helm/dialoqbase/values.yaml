@@ -1,0 +1,45 @@
+replicaCount: 2
+
+image:
+  repository: your-registry/dialoqbase
+  tag: latest
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: true
+  className: nginx
+  hosts:
+    - host: dialoqbase.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: 1
+    memory: 2Gi
+
+env:
+  NODE_ENV: production
+  DB_QUEUE_CONCURRENCY: "2"
+  DB_QUEUE_THREADS: "false"
+  DB_CACHE_TTL_S: "600"
+  DB_USE_RERANK: "false"
+  OLLAMA_BASE_URL: http://ollama.ollama:11434
+
+secretEnv:
+  DATABASE_URL: "postgresql://user:pass@postgres:5432/dialoqbase"
+  REDIS_URL: "redis://:pass@redis:6379/0"
+  OPENAI_API_KEY: ""
+  ANTHROPIC_API_KEY: ""
+  GOOGLE_API_KEY: ""
+  COHERE_API_KEY: ""
+  DB_SECRET_KEY: change-me
+

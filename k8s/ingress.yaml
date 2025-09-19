@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dialoqbase
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+    - host: dialoqbase.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dialoqbase
+                port:
+                  number: 80
+
