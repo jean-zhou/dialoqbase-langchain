@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dialoqbase
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: dialoqbase
+  template:
+    metadata:
+      labels:
+        app: dialoqbase
+    spec:
+      containers:
+        - name: server
+          image: your-registry/dialoqbase:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: dialoqbase-config
+            - secretRef:
+                name: dialoqbase-secret
+          readinessProbe:
+            httpGet:
+              path: /docs
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /docs
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dialoqbase-config
+data:
+  NODE_ENV: "production"
+  OTEL_SERVICE_NAME: "dialoqbase-server"
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "http://otel-collector:4318/v1/traces"
+  DB_QUEUE_CONCURRENCY: "2"
+  DB_QUEUE_THREADS: "false"
+  DB_CACHE_TTL_S: "600"
+  DB_USE_RERANK: "false"
+  OLLAMA_BASE_URL: "http://ollama.ollama:11434"
+
