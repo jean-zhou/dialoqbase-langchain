@@ -1,4 +1,6 @@
 import { join } from "path";
+// Initialize tracing as early as possible
+import "./observability/tracing";
 import AutoLoad, { AutoloadPluginOptions } from "@fastify/autoload";
 import { FastifyPluginAsync } from "fastify";
 import cors from "@fastify/cors";
@@ -57,6 +59,9 @@ const app: FastifyPluginAsync<AppOptions> = async (
     dir: join(__dirname, "plugins"),
     options: opts,
   });
+
+  // Metrics endpoint
+  void fastify.register(import("./plugins/metrics"));
 
   void fastify.register(AutoLoad, {
     dir: join(__dirname, "routes"),
