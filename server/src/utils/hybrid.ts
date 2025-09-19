@@ -5,6 +5,43 @@ import { BaseRetriever, BaseRetrieverInput } from "@langchain/core/retrievers";
 import { CallbackManagerForRetrieverRun, Callbacks } from "langchain/callbacks";
 import { searchInternet } from "../internet";
 import { startSpan, endSpan } from "../observability/metrics-helpers";
+
+async function tryRerankWithCohere(query: string, results: SearchResult[]): Promise<SearchResult[]> {
+  const apiKey = process.env.COHERE_API_KEY;
+  if (!apiKey) return results;
+  try {
+    const { CohereClient } = await import("cohere-ai");
+    const client = new CohereClient({ token: apiKey });
+    const documents = results.map(([doc]) => ({ text: doc.pageContent }));
+    const span = startSpan("retrieval.rerank", { provider: "cohere" });
+    try {
+      const resp: any = await client.rerank({
+        query,
+        documents,
+        topN: Math.min(10, documents.length),
+        model: process.env.COHERE_RERANK_MODEL || "rerank-english-v3.0",
+      });
+      // resp.re.rankings contains index and relevance_score
+      const byIndex: Record<number, { score: number; item: SearchResult }> = {};
+      results.forEach((item, idx) => (byIndex[idx] = { score: 0, item }));
+      for (const r of resp.results || resp.re_rank || resp.reRank || resp) {
+        const idx = r.index ?? r.document?.index;
+        const score = r.relevanceScore ?? r.score ?? r.relevance_score;
+        if (typeof idx === "number" && idx in byIndex) {
+          byIndex[idx].score = typeof score === "number" ? score : 0;
+        }
+      }
+      const reranked = Object.values(byIndex)
+        .sort((a, b) => b.score - a.score)
+        .map((x) => x.item);
+      return reranked;
+    } finally {
+      endSpan(span);
+    }
+  } catch (_e) {
+    return results;
+  }
+}
 const prisma = new PrismaClient();
 export interface DialoqbaseLibArgs extends BaseRetrieverInput {
   botId: string;
@@ -112,8 +149,15 @@ export class DialoqbaseHybridRetrival extends BaseRetriever {
         });
       }
 
-      const combinedResults = [...result, ...internetSearchResults];
+      let combinedResults = [...result, ...internetSearchResults];
       combinedResults.sort((a, b) => b[1] - a[1]);
+
+      // Optional rerank (env-driven)
+      const useRerank = (process.env.DB_USE_RERANK || "false").toLowerCase() === "true";
+      if (useRerank && combinedResults.length > 0) {
+        combinedResults = await tryRerankWithCohere(query, combinedResults);
+      }
+
       const topResults = combinedResults.slice(0, k);
       return topResults;
     } catch (e) {

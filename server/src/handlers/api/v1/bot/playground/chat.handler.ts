@@ -12,6 +12,8 @@ import {
   handleErrorResponse,
   saveChatHistory,
 } from "./chat.service";
+import { getJson, setJsonTTL, makeKey, stableHash } from "../../../../../utils/cache";
+import { incCacheHit } from "../../../../../observability/metrics-helpers";
 
 export const chatRequestHandler = async (
   request: FastifyRequest<ChatRequestBody>,
@@ -101,6 +103,20 @@ export const chatRequestHandler = async (
     });
 
     const sanitizedQuestion = message.trim().replaceAll("\n", " ");
+    // Generation-level cache
+    const genCacheKey = makeKey([
+      "gen",
+      bot.id,
+      bot.model,
+      stableHash(bot.qaPrompt),
+      stableHash(sanitizedQuestion),
+      bot.noOfChatHistoryInContext,
+    ]);
+    const cachedGen = await getJson<any>(genCacheKey);
+    if (cachedGen) {
+      incCacheHit();
+      return cachedGen;
+    }
     const botResponse = await chain.invoke({
       question: sanitizedQuestion,
       chat_history: groupMessagesByConversation(
@@ -111,7 +127,21 @@ export const chatRequestHandler = async (
       ),
     });
 
-    const documents = await retriever.getRelevantDocuments(sanitizedQuestion);
+    // Retrieval-level cache
+    const retCacheKey = makeKey([
+      "ret",
+      bot.id,
+      stableHash(sanitizedQuestion),
+      bot.use_hybrid_search,
+      process.env.DB_USE_RERANK || "false",
+    ]);
+    let documents = await getJson<any[]>(retCacheKey);
+    if (!documents) {
+      documents = await retriever.getRelevantDocuments(sanitizedQuestion);
+      await setJsonTTL(retCacheKey, documents);
+    } else {
+      incCacheHit();
+    }
     const historyId = await saveChatHistory(
       prisma,
       bot.id,
@@ -124,7 +154,7 @@ export const chatRequestHandler = async (
     const ms = Date.now() - t0;
     observePipelineLatency(ms);
     endSpan(pipelineSpan);
-    return {
+    const resultPayload = {
       bot: { text: botResponse, sourceDocuments: documents },
       history: [
         ...history,
@@ -133,6 +163,8 @@ export const chatRequestHandler = async (
       ],
       history_id: historyId,
     };
+    await setJsonTTL(genCacheKey, resultPayload);
+    return resultPayload;
   } catch (e) {
     console.error(e);
     return handleErrorResponse(
