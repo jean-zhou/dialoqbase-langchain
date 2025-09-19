@@ -5,6 +5,9 @@ import { createChain, groupMessagesByConversation } from "../../../../../chain";
 import { getModelInfo } from "../../../../../utils/get-model-info";
 import { nextTick } from "../../../../../utils/nextTick";
 import { startSpan, endSpan, observePipelineLatency } from "../../../../../observability/metrics-helpers";
+import { loadPrompt } from "../../../../../prompts/loader";
+import { buildPromptFromRegistry } from "../../../../../utils/prompts";
+import { validateJson } from "../../../../../utils/schema-validate";
 import {
   createChatModel,
   createRetriever,
@@ -94,11 +97,16 @@ export const chatRequestHandler = async (
     const botConfig = getBotConfig(bot, modelinfo);
     const model = createChatModel(bot, bot.temperature, botConfig);
 
+    // Resolve prompt version (optional)
+    const promptVersion = (request.query as any)?.prompt_version || "v1";
+    const registry = loadPrompt("qa", String(promptVersion));
+    const qaPrompt = buildPromptFromRegistry(registry?.system_template, bot.qaPrompt);
+
     const chain = createChain({
       llm: model,
       question_llm: model,
       question_template: bot.questionGeneratorPrompt,
-      response_template: bot.qaPrompt,
+      response_template: qaPrompt,
       retriever,
     });
 
@@ -117,7 +125,7 @@ export const chatRequestHandler = async (
       incCacheHit();
       return cachedGen;
     }
-    const botResponse = await chain.invoke({
+    let botResponse = await chain.invoke({
       question: sanitizedQuestion,
       chat_history: groupMessagesByConversation(
         history.slice(-bot.noOfChatHistoryInContext).map((message) => ({
@@ -126,6 +134,21 @@ export const chatRequestHandler = async (
         }))
       ),
     });
+
+    // Optional output schema validation if registry defines it and response is JSON
+    if (registry?.output_schema) {
+      try {
+        const asJson = JSON.parse(String(botResponse));
+        const res = validateJson(registry.output_schema, asJson);
+        if (!res.ok) {
+          // If invalid, keep original plain text response; you can also trigger a retry here.
+        } else {
+          botResponse = asJson?.answer ?? botResponse;
+        }
+      } catch {
+        // not json, ignore
+      }
+    }
 
     // Retrieval-level cache
     const retCacheKey = makeKey([
@@ -272,11 +295,15 @@ export const chatRequestStreamHandler = async (
 
     reply.raw.setHeader("Content-Type", "text/event-stream");
 
+    const promptVersion = (request.query as any)?.prompt_version || "v1";
+    const registry = loadPrompt("qa", String(promptVersion));
+    const qaPrompt = buildPromptFromRegistry(registry?.system_template, bot.qaPrompt);
+
     const chain = createChain({
       llm: streamedModel,
       question_llm: nonStreamingModel,
       question_template: bot.questionGeneratorPrompt,
-      response_template: bot.qaPrompt,
+      response_template: qaPrompt,
       retriever,
     });
 
